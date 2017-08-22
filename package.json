@@ -1,0 +1,33 @@
+{
+  "name": "hilink-nodejs-sms",
+  "version": "1.0.0",
+  "description": "Node.js module to send sms from connected Huawei routers/modems.",
+  "main": "app.js",
+  "devDependencies": {
+    "cookie": "^0.3.1",
+    "cookies": "^0.7.0",
+    "got": "^7.1.0",
+	"js-base64": "^2.1.9",
+    "sha256": "^0.2.0",
+    "xml2js": "^0.4.18"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kamil90k/hilink-nodejs-sms.git"
+  },
+  "keywords": [
+    "huawei",
+    "hilink",
+    "sms",
+    "nodejs"
+  ],
+  "author": "2K",
+  "license": "WTFPL",
+  "bugs": {
+    "url": "https://github.com/kamil90k/hilink-nodejs-sms/issues"
+  },
+  "homepage": "https://github.com/kamil90k/hilink-nodejs-sms"
+}
