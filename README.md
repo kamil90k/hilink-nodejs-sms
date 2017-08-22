@@ -2,9 +2,9 @@
 Node.js module to send sms from Huawei routers/modems.
 Tested with latest software for Huawei E5573s-320, details:
 
-Device name:		E5573s-320
-Hardware version:	CL1E5573SM01
-Software version:	21.326.62.00.264
+* Device name:		E5573s-320
+* Hardware version:	CL1E5573SM01
+* Software version:	21.326.62.00.264
 
 Module should work with other devices compatible with Huawei Hilink software.
 
