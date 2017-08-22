@@ -14,7 +14,7 @@ Module should work with other devices compatible with Huawei Hilink software.
 $ npm install
 ```
 
-## CONFIG:
+## Configuration:
 
 Provide `login` and `hash of your password` to router/modem acount (192.168.8.1) in file `config.js`
 ```js
@@ -24,7 +24,7 @@ const config = {
 }
 ```
 
-## SEND SMS:
+## Sending sms:
 
 Log into router and if login is successful send sms
 ```js
@@ -34,12 +34,12 @@ authenticate().then(()=>{
 	sms("sms 3", "600700800");
 })
 ```
-## USEFUL:
+## Useful:
 
 After first authentication, router respond with 30 auth tokens. It means that for next 30 sms there is no need to do authentication again. When all tokens are used, next call of `sms` function will perform authentication automaticly.
 
 
-`sms(param1, param2)`
+`function sms(param1, param2)`
 
 parameter | Description | type
 --- | --- | ---
