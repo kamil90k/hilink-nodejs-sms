@@ -68,15 +68,16 @@ function authenticate() {
 }
 
 function sms(message, recipient) {
-
+	if(g_smsRetry >2){
+		console.log("SMS fails, retries: " + smsRetry);
+        return false;
+    }
+	
     if(g_reqTokens.length == 0 || g_sessionId == ""){
         g_smsRetry += 1;
         return authenticate().then(()=>{
             sms(message, recipient);
         }).catch(ERR_HANDLER);
-    }else if(g_smsRetry >3){
-        console.log("SMS fails, retries: " + smsRetry);
-        return false;
     }
 
     g_smsRetry = 0;
