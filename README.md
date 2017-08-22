@@ -39,12 +39,12 @@ authenticate().then(()=>{
 After first authentication, router respond with 30 auth tokens. It means that for next 30 sms there is no need to do authentication again. When all tokens are used, next call of `sms` function will perform authentication automaticly.
 
 
-`sms` function parameters:
+`sms(param1, param2)`
 
-parameter no. | Description | type
+parameter | Description | type
 --- | --- | ---
-`1` | SMS text | String
-`2` | phone number / numbers | String / Array of Strings
+`param1` | SMS text | String
+`param2` | phone number / numbers | String / Array of Strings
 
 
 
