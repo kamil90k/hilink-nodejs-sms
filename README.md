@@ -16,7 +16,7 @@ $ npm install
 
 ## Configuration
 
-Provide `login` and `hash of your password` to router/modem acount (192.168.8.1) in file `config.js`
+Provide `login` and `hash of your password` to router/modem acount (192.168.8.1) in file `config.json`
 ```js
 const config = {
 	password: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX4ca700b295aaa3a24",//<- sha256("PASSWORD")

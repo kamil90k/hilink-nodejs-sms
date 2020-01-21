@@ -1,33 +1,53 @@
 {
   "name": "hilink-nodejs-sms",
   "version": "1.0.0",
-  "description": "Node.js module to send sms from connected Huawei routers/modems.",
-  "main": "app.js",
-  "devDependencies": {
-    "cookie": "^0.3.1",
-    "cookies": "^0.7.0",
-    "got": "^7.1.0",
-	"js-base64": "^2.1.9",
-    "sha256": "^0.2.0",
-    "xml2js": "^0.4.18"
-  },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/kamil90k/hilink-nodejs-sms.git"
-  },
+  "description": "Node.js library to send sms from Huawei routers/modems (hilink).",
   "keywords": [
     "huawei",
     "hilink",
     "sms",
     "nodejs"
   ],
-  "author": "2K",
+  "author": "kamil90k",
+  "homepage": "https://github.com/kamil90k/hilink-nodejs-sms.git#readme",
   "license": "WTFPL",
-  "bugs": {
-    "url": "https://github.com/kamil90k/hilink-nodejs-sms/issues"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
-  "homepage": "https://github.com/kamil90k/hilink-nodejs-sms"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kamil90k/hilink-nodejs-sms.git"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:cover": "jest --collectCoverage",
+    "test:watch": "jest --watchAll",
+    "build": "tsc"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.ts"
+    ]
+  },
+  "dependencies": {
+    "got": "^10.2.2",
+    "xml2js": "^0.4.23"
+  },
+  "devDependencies": {
+    "@types/jest": "24.9.0",
+    "@types/node": "^13.1.7",
+    "@types/xml2js": "^0.4.5",
+    "jest": "24.9.0",
+    "ts-jest": "24.3.0",
+    "ts-node": "8.6.2",
+    "ts-node-dev": "1.0.0-pre.44",
+    "typescript": "3.7.4"
+  }
 }
