@@ -6,30 +6,19 @@ Hardware version: CL1E5573SM01
 Software version: 21.326.62.00.264
 Web UI version: 17.100.18.01.264
 */
-
 import got from 'got';
 import { base64, getDate, jsonToXmlString, xmlStringToJson, sha256 } from './utils';
+import { IGetSessionResponse, IHilinkSms, IHilinkSmsConfig, Protocol } from './interfaces';
 
-interface IHilinkSmsConfig {
-  login: string;
-  sha256password: string;
-  protocol?: string;
-  host?: string;
-}
+const DEFAULT_PROTOCOL = 'http';
+const DEFAULT_HOST = '192.168.8.1';
 
-interface IGetSessionResponse {
-  response: {
-    SesInfo: string;
-    TokInfo: string;
-  }
-}
-
-class HilinkSms {
+class HilinkSms implements IHilinkSms {
   private _auth: {
     login: string;
     password: string;
   };
-  private _protocol: string;
+  private _protocol: Protocol;
   private _host: string;
 
   private _authTokens: string[];
@@ -41,8 +30,8 @@ class HilinkSms {
       login: config.login,
       password: config.sha256password
     };
-    this._protocol = config.protocol || 'http';
-    this._host = config.host || '192.168.8.1';
+    this._protocol = config.protocol || DEFAULT_PROTOCOL;
+    this._host = config.host || DEFAULT_HOST;
 
     this._authTokens = [];
     this._sessionId = '';

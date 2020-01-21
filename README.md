@@ -1,38 +1,43 @@
 # hilink-nodejs-sms
-Node.js application to send sms from Huawei routers/modems.
+Node.js library to send sms from Huawei routers/modems. Written in typescript.
+
 Tested with latest software for Huawei E5573s-320, details:
 
 * Device name:		E5573s-320
 * Hardware version:	CL1E5573SM01
 * Software version:	21.326.62.00.264
 
-Module should work with other devices compatible with Huawei Hilink software.
+Library should work with other devices compatible with Huawei Hilink software.
 
 ## Installation
 
 ```sh
-$ npm install
+$ npm install hilink-nodejs-sms --save
 ```
 
 ## Sending sms
 
 Provide `login` and `hash of your password` to router/modem
 ```js
-const HilinkSms from 'HilinkSms';  // HilinkSms will be publish to the NPM soon!
+const HilinkSms from 'hilink-nodejs-sms';  // HilinkSms will be publish to the NPM soon!
 const hilink = new HilinkSms({
   login: 'admin',
-  sha256password: '4bb2a3512d098de9029abd16638c60a1a877aac591cb06ba69a6eacd1f64c010'
+  sha256password: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', // sha256('password')
+  host: '192.168.8.1', // optional
+  protocol: 'http' // optional
 });
 await hilink.sms('hello huawei!', ['500600700']);
 
 ```
 
-`function sms(param1, param2)`
+[typescript]
+
+`async sms(message: string, recipient: string | string[]): Promise<void>`
 
 parameter | Description | type
 --- | --- | ---
-`param1` | SMS text | String
-`param2` | phone number / numbers | String / Array of Strings
+`message` | SMS text | String
+`recipient` | phone number / numbers | String / Array of Strings
 
 
 ## Caution
