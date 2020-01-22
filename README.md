@@ -19,11 +19,12 @@ $ npm install hilink-nodejs-sms --save
 
 Provide `login` and `hash of your password` to router/modem
 ```js
-const HilinkSms from 'hilink-nodejs-sms';  // HilinkSms will be publish to the NPM soon!
+import HilinkSms from 'hilink-nodejs-sms';
+
 const hilink = new HilinkSms({
   login: 'admin',
   sha256password: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', // sha256('password')
-  host: '192.168.8.1', // optional
+  host: '192.168.8.1', // optional, Huawei device IP
   protocol: 'http' // optional
 });
 await hilink.sms('hello huawei!', ['500600700']);
