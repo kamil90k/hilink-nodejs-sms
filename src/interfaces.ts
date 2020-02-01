@@ -7,8 +7,8 @@ interface IHilinkSmsConfig {
 }
 interface IGetSessionResponse {
   response: {
-    SesInfo: string;
-    TokInfo: string;
+    SesInfo: string[];
+    TokInfo: string[];
   }
 }
 interface IHilinkSms {
