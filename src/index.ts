@@ -6,9 +6,9 @@ Hardware version: CL1E5573SM01
 Software version: 21.326.62.00.264
 Web UI version: 17.100.18.01.264
 */
-import got from 'got';
+import got, { Response } from 'got';
 import { base64, getDate, jsonToXmlString, xmlStringToJson, sha256 } from './utils';
-import { IGetSessionResponse, IHilinkSms, IHilinkSmsConfig, Protocol } from './interfaces';
+import { IApiResponse, IGetSessionResponse, IHilinkSms, IHilinkSmsConfig, Protocol } from './interfaces';
 
 const DEFAULT_PROTOCOL = 'http';
 const DEFAULT_HOST = '192.168.8.1';
@@ -23,7 +23,6 @@ class HilinkSms implements IHilinkSms {
 
   private _authTokens: string[];
   private _sessionId: string;
-  private _smsRetryCount: number;
 
   constructor(config: IHilinkSmsConfig) {
     this._auth = {
@@ -35,21 +34,13 @@ class HilinkSms implements IHilinkSms {
 
     this._authTokens = [];
     this._sessionId = '';
-    this._smsRetryCount = 0;
   }
 
   public async sms(message: string, recipient: string | string[]): Promise<void> {
-    if (this._smsRetryCount > 2) {
-      console.log('SMS fails, retries: ' + this._smsRetryCount);
-      throw new Error('');
-    }
-
     if (this._authTokens.length == 0 || !this._sessionId) {
-      console.log('AUTO AUTHENTICATION');
-      this._smsRetryCount += 1;
+      console.log('[SMS] auto authentication');
       await this._authenticate();
-      await this.sms(message, recipient);
-      return;
+      return this.sms(message, recipient);
     }
 
     let params = {
@@ -70,9 +61,15 @@ class HilinkSms implements IHilinkSms {
       }
     };
 
-    const response = await got.post(this._getSmsURL(), params);
-    console.log('SMS\n', await xmlStringToJson(response.body));
-    this._smsRetryCount = 0;
+    const response: Response | any = await got
+      .post(this._getSmsURL(), params)
+      .catch(this._networkErrorHandler);
+
+    const responseJson: IApiResponse = await xmlStringToJson(response.body);
+    if (responseJson.response !== 'OK') {
+      throw new Error('[SMS] Failed to send SMS.');
+    }
+    console.log('[SMS] Send SMS OK');
   };
 
   private async _authenticate(): Promise<void> {
@@ -81,7 +78,10 @@ class HilinkSms implements IHilinkSms {
   };
 
   private async _getSession(): Promise<IGetSessionResponse> {
-    const sessionResponse = await got(this._getSessionTokensURL());
+    const sessionResponse: Response | any = await got
+      .get(this._getSessionTokensURL())
+      .catch(this._networkErrorHandler);
+
     const response = await xmlStringToJson(sessionResponse.body);
     return response as IGetSessionResponse;
   };
@@ -103,16 +103,26 @@ class HilinkSms implements IHilinkSms {
       }
     };
 
-    const loginResponse: any = await got.post(this._getLoginURL(), params);
-    if (!loginResponse.headers['__requestverificationtoken'] || loginResponse.headers['set-cookie'] == null) {
-      throw new Error('Failed to login.');
+    const response: Response | any = await got
+      .post(this._getLoginURL(), params)
+      .catch(this._networkErrorHandler);
+
+    const responseJson: IApiResponse = await xmlStringToJson(response.body);
+    const { '__requestverificationtoken': verificationToken, 'set-cookie': cookies } = response.headers;
+    if (!verificationToken || !Array.isArray(cookies) || responseJson.response !== 'OK') {
+      throw new Error('[SMS] Failed to login.');
     }
 
-    this._authTokens = loginResponse.headers['__requestverificationtoken'].split('#');
+    this._authTokens = verificationToken.split('#');
     this._authTokens.pop();//last token is empty, remove it
-    this._sessionId = loginResponse.headers['set-cookie'][0];
-    console.log('LOGIN\n', await xmlStringToJson(loginResponse.body));
+    this._sessionId = cookies[0];
+    console.log('[SMS] LOGIN OK');
   };
+
+  private _networkErrorHandler(err: Error) {
+    console.log('[SMS] external error message:', err.message);
+    throw new Error('[SMS] Network error');
+  }
 
   private _getLoginURL(): string {
     return `${this._protocol}://${this._host}/api/user/login`;

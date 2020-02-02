@@ -7,15 +7,19 @@ interface IHilinkSmsConfig {
 }
 interface IGetSessionResponse {
   response: {
-    SesInfo: string;
-    TokInfo: string;
+    SesInfo: string[];
+    TokInfo: string[];
   }
 }
 interface IHilinkSms {
   sms: (message: string, recipient: string | string[]) => Promise<void>;
 }
+interface IApiResponse {
+  response?: 'OK';
+}
 
 export {
+  IApiResponse,
   IGetSessionResponse,
   IHilinkSms,
   IHilinkSmsConfig,
