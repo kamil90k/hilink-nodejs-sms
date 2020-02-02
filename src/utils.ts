@@ -13,7 +13,7 @@ const sha256 = (data: string): string => crypto
   .createHash('sha256')
   .update(data, 'utf8')
   .digest('hex');
-const xmlStringToJson = async (body: any): Promise<any> => parseStringPromise(body);
+const xmlStringToJson = async (body: any): Promise<any> => parseStringPromise(body || '');
 
 export {
   base64,

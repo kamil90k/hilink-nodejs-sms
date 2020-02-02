@@ -1,7 +1,7 @@
 import HilinkSms from '../src';
 import Nock from 'nock';
 import { base64, getDate, jsonToXmlString, sha256 } from '../src/utils';
-import * as utils from '../src/utils';
+import * as utils from '../src/utils'; // mock purpose
 import { uuid } from './testUtils';
 
 // mock generating date
@@ -12,7 +12,7 @@ const DEFAULT_PROTOCOL = 'http',
   BASE_PATH = `${DEFAULT_PROTOCOL}://${DEFAULT_HOST}`,
   LOGIN = 'admin',
   PASSWORD = 'password',
-  RECEIPENT = '500600700';
+  RECIPIENT = '500600700';
 
 const nock = Nock(BASE_PATH, { allowUnmocked: false });
 
@@ -21,11 +21,10 @@ const getLoginReqBody = (session: string, reqVerToken: string) => jsonToXmlStrin
   Password: base64(sha256(LOGIN + base64(PASSWORD) + reqVerToken)),
   password_type: 4
 });
-
 const getSmsReqBody = (message: string) => jsonToXmlString({
   Index: -1,
   Phones: {
-    Phone: RECEIPENT
+    Phone: RECIPIENT
   },
   Sca: '',
   Content: message,
@@ -39,7 +38,8 @@ const mockSessionResponse = () => {
   const reqVerToken = uuid();
   const session = uuid();
 
-  nock.get('/api/webserver/SesTokInfo')
+  nock
+    .get('/api/webserver/SesTokInfo')
     .reply(200, jsonToXmlString({
       response: {
         SesInfo: [session],
@@ -49,9 +49,9 @@ const mockSessionResponse = () => {
 
   return { reqVerToken, session }
 };
-
-const mockLoginResponse = (session: string, reqVerToken: string, tokens: string[]) => {
-  const smsSessionId = uuid();
+const mockLoginResponse = (session: string, reqVerToken: string) => {
+  const smsSession = uuid();
+  const tokens = [uuid(), uuid(), uuid(), '']; // last token must be empty!
   nock
     .post('/api/user/login', getLoginReqBody(session, reqVerToken))
     .matchHeader('cookie', session)
@@ -60,15 +60,14 @@ const mockLoginResponse = (session: string, reqVerToken: string, tokens: string[
       200,
       jsonToXmlString({ response: 'OK' }),
       { '__requestverificationtoken': tokens.join('#'),
-        'set-cookie': smsSessionId }
+        'set-cookie': smsSession }
     );
   tokens.pop(); // important! remove empty token
 
-  return smsSessionId;
+  return { smsSession, tokens };
 };
-
 const mockSmsResponse = (message: string, smsSessionId: string, tokens: string[]) => {
-  nock.log(console.log)
+  nock
     .post('/api/sms/send-sms', getSmsReqBody(message))
     .matchHeader('cookie', smsSessionId)
     .matchHeader('__RequestVerificationToken', tokens.pop() as string)
@@ -76,26 +75,125 @@ const mockSmsResponse = (message: string, smsSessionId: string, tokens: string[]
 };
 
 describe('Huawei HiLink sms', () => {
-  it('success - authenticate and send sms', async () => {
-    // SESSION
-    const { reqVerToken, session } = mockSessionResponse();
+  let hilinkSms: HilinkSms;
 
-    // LOGIN
-    const tokens = [uuid(), uuid(), uuid(), '']; // last token must be empty!
-    const smsSession = mockLoginResponse(session, reqVerToken, tokens);
-
-    // SMS
-    const message = 'sample message';
-    mockSmsResponse(message, smsSession, tokens);
-
-    const hilinkSms = new HilinkSms({
+  beforeEach(() => {
+    hilinkSms = new HilinkSms({
       protocol: DEFAULT_PROTOCOL,
       host: DEFAULT_HOST,
       login: LOGIN,
       sha256password: PASSWORD
     });
+  });
 
-    await hilinkSms.sms(message, RECEIPENT);
+  afterEach(() => {
+    Nock.cleanAll();
+  });
+
+  it('success - automatic authenticate and send sms', async () => {
+    const message = 'sample message';
+    // session
+    const { reqVerToken, session } = mockSessionResponse();
+    // login
+    const { smsSession, tokens } = mockLoginResponse(session, reqVerToken);
+    // sms
+    mockSmsResponse(message, smsSession, tokens);
+
+    await hilinkSms.sms(message, RECIPIENT);
+    expect(nock.pendingMocks().length).toEqual(0);
+  });
+
+  it('success - 2x automatic authenticate', async () => {
+    // SMS 1
+    const message = 'sample message';
+    // session
+    const { reqVerToken, session } = mockSessionResponse();
+    // login
+    const { smsSession, tokens } = mockLoginResponse(session, reqVerToken);
+    // sms
+    mockSmsResponse(message, smsSession, tokens);
+    mockSmsResponse(message, smsSession, tokens);
+    mockSmsResponse(message, smsSession, tokens);
+
+    await hilinkSms.sms(message, RECIPIENT);
+    await hilinkSms.sms(message, RECIPIENT);
+    await hilinkSms.sms(message, RECIPIENT);
+
+    // SMS 2
+    const message2 = 'sample message 2';
+    // session
+    const { reqVerToken: reqVerToken2, session: session2 } = mockSessionResponse();
+    // login
+    const { smsSession: smsSession2, tokens: tokens2 } = mockLoginResponse(session2, reqVerToken2);
+    // sms
+    mockSmsResponse(message2, smsSession2, tokens2);
+    mockSmsResponse(message2, smsSession2, tokens2);
+    mockSmsResponse(message2, smsSession2, tokens2);
+
+    await hilinkSms.sms(message2, RECIPIENT);
+    await hilinkSms.sms(message2, RECIPIENT);
+    await hilinkSms.sms(message2, RECIPIENT);
+
+    expect(nock.pendingMocks().length).toEqual(0);
+  });
+
+  it('failed - reach session endpoint', async () => {
+    let error: any;
+    nock
+      .get('/api/webserver/SesTokInfo')
+      .replyWithError('sth goes wrong...');
+
+    try {
+      await hilinkSms.sms('message', RECIPIENT);
+    } catch (err) {
+      error = err
+    } finally {
+      expect(error.message).toMatch(/.*Network error.*/);
+    }
+
+    expect(nock.pendingMocks().length).toEqual(0);
+  });
+
+  it('failed - reach login endpoint', async () => {
+    let error: any;
+    // session
+    await mockSessionResponse();
+    // login
+    nock
+      .post('/api/user/login')
+      .replyWithError('sth goes wrong...');
+
+    try {
+      await hilinkSms.sms('message', RECIPIENT);
+    } catch (err) {
+      error = err
+    } finally {
+      expect(error?.message).toMatch(/.*Network error.*/);
+    }
+
+    expect(nock.pendingMocks().length).toEqual(0);
+  });
+
+  it('failed - reach sms endpoint', async () => {
+    let error: any;
+    // session
+    const { reqVerToken, session } = mockSessionResponse();
+    // login
+    const { smsSession, tokens } = mockLoginResponse(session, reqVerToken);
+
+    nock
+      .post('/api/sms/send-sms')
+      .replyWithError('sth goes wrong...');
+
+    try {
+      await hilinkSms.sms('message', RECIPIENT);
+    } catch (err) {
+      error = err
+    } finally {
+      expect(error?.message).toMatch(/.*Network error.*/);
+    }
+
+    expect(nock.pendingMocks().length).toEqual(0);
   });
 
 });

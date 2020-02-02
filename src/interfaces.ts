@@ -14,8 +14,12 @@ interface IGetSessionResponse {
 interface IHilinkSms {
   sms: (message: string, recipient: string | string[]) => Promise<void>;
 }
+interface IApiResponse {
+  response?: 'OK';
+}
 
 export {
+  IApiResponse,
   IGetSessionResponse,
   IHilinkSms,
   IHilinkSmsConfig,
