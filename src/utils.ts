@@ -14,11 +14,13 @@ const sha256 = (data: string): string => crypto
   .update(data, 'utf8')
   .digest('hex');
 const xmlStringToJson = async (body: any): Promise<any> => parseStringPromise(body || '');
+const logger = (...data: any) => console.log(getDate(), '[SMS]',  ...data);
 
 export {
   base64,
   getDate,
   jsonToXmlString,
+  logger,
   sha256,
   xmlStringToJson
 };

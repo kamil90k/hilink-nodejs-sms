@@ -7,22 +7,26 @@ Software version: 21.326.62.00.264
 Web UI version: 17.100.18.01.264
 */
 import got, { Response } from 'got';
-import { base64, getDate, jsonToXmlString, xmlStringToJson, sha256 } from './utils';
+import { base64, getDate, jsonToXmlString, xmlStringToJson, sha256, logger } from './utils';
 import { IApiResponse, IGetSessionResponse, IHilinkSms, IHilinkSmsConfig, Protocol } from './interfaces';
 
 const DEFAULT_PROTOCOL = 'http';
 const DEFAULT_HOST = '192.168.8.1';
+const DEFAULT_LOGOUT_TIME = 250 * 1000;
 
 class HilinkSms implements IHilinkSms {
-  private _auth: {
+  private readonly _auth: {
     login: string;
     password: string;
   };
-  private _protocol: Protocol;
-  private _host: string;
+  private readonly _protocol: Protocol;
+  private readonly _host: string;
 
-  private _authTokens: string[];
-  private _sessionId: string;
+  private _authTokens: string[] = [];
+  private _sessionId: string = '';
+
+  private _clearSessionTimeout: NodeJS.Timeout | undefined;
+  private _authPromise: Promise<any> | undefined;
 
   constructor(config: IHilinkSmsConfig) {
     this._auth = {
@@ -32,13 +36,14 @@ class HilinkSms implements IHilinkSms {
     this._protocol = config.protocol || DEFAULT_PROTOCOL;
     this._host = config.host || DEFAULT_HOST;
 
-    this._authTokens = [];
-    this._sessionId = '';
+    this._networkErrorHandler = this._networkErrorHandler.bind(this);
+    this._clearSessionData = this._clearSessionData.bind(this);
   }
 
   public async sms(message: string, recipient: string | string[]): Promise<void> {
+    const startTime = Date.now();
     if (this._authTokens.length == 0 || !this._sessionId) {
-      console.log('[SMS] auto authentication');
+      logger('auto authentication');
       await this._authenticate();
       return this.sms(message, recipient);
     }
@@ -67,14 +72,26 @@ class HilinkSms implements IHilinkSms {
 
     const responseJson: IApiResponse = await xmlStringToJson(response.body);
     if (responseJson.response !== 'OK') {
+      this._clearSessionData();
       throw new Error('[SMS] Failed to send SMS.');
     }
-    console.log('[SMS] Send SMS OK');
+    logger('Send SMS OK,', `${Math.floor(Date.now() - startTime)}ms`);
   };
 
   private async _authenticate(): Promise<void> {
-    const sessionResponse = await this._getSession();
-    await this._login(sessionResponse.response);
+    if (this._authPromise !== undefined) return this._authPromise;
+
+    clearTimeout(this._clearSessionTimeout as NodeJS.Timeout);
+
+    const asyncTask = async (): Promise<void> => {
+      const sessionResponse = await this._getSession();
+      return this._login(sessionResponse.response);
+    };
+
+    this._authPromise = asyncTask();
+
+    await this._authPromise;
+    this._authPromise = undefined;
   };
 
   private async _getSession(): Promise<IGetSessionResponse> {
@@ -110,17 +127,26 @@ class HilinkSms implements IHilinkSms {
     const responseJson: IApiResponse = await xmlStringToJson(response.body);
     const { '__requestverificationtoken': verificationToken, 'set-cookie': cookies } = response.headers;
     if (!verificationToken || !Array.isArray(cookies) || responseJson.response !== 'OK') {
+      this._clearSessionData();
       throw new Error('[SMS] Failed to login.');
     }
 
     this._authTokens = verificationToken.split('#');
     this._authTokens.pop();//last token is empty, remove it
     this._sessionId = cookies[0];
-    console.log('[SMS] LOGIN OK');
+
+    this._clearSessionTimeout = setTimeout(this._clearSessionData, DEFAULT_LOGOUT_TIME);
+
+    logger('LOGIN OK');
   };
 
+  private _clearSessionData(): void {
+    this._authTokens = [];
+    this._sessionId = '';
+  }
+
   private _networkErrorHandler(err: Error) {
-    console.log('[SMS] external error message:', err.message);
+    logger('external error message:', err.message);
     throw new Error('[SMS] Network error');
   }
 

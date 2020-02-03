@@ -49,9 +49,13 @@ const mockSessionResponse = () => {
 
   return { reqVerToken, session }
 };
-const mockLoginResponse = (session: string, reqVerToken: string) => {
+const mockLoginResponse = (session: string, reqVerToken: string, tokenAmount: number = 3) => {
   const smsSession = uuid();
-  const tokens = [uuid(), uuid(), uuid(), '']; // last token must be empty!
+  const tokens = new Array(tokenAmount)
+    .fill('')
+    .map(uuid)
+    .concat(''); // last token must be empty!
+
   nock
     .post('/api/user/login', getLoginReqBody(session, reqVerToken))
     .matchHeader('cookie', session)
@@ -66,11 +70,12 @@ const mockLoginResponse = (session: string, reqVerToken: string) => {
 
   return { smsSession, tokens };
 };
-const mockSmsResponse = (message: string, smsSessionId: string, tokens: string[]) => {
+const mockSmsResponse = (message: string, smsSessionId: string, tokens: string[], times: number = 1) => {
   nock
     .post('/api/sms/send-sms', getSmsReqBody(message))
+    .times(times)
     .matchHeader('cookie', smsSessionId)
-    .matchHeader('__RequestVerificationToken', tokens.pop() as string)
+    .matchHeader('__RequestVerificationToken', new RegExp(tokens.join('|')))
     .reply(200, jsonToXmlString({ response: 'OK' }));
 };
 
@@ -103,6 +108,25 @@ describe('Huawei HiLink sms', () => {
     expect(nock.pendingMocks().length).toEqual(0);
   });
 
+  it('success - automatic authenticate and mass sending sms', async () => {
+    const message = 'sample message';
+    // session
+    const { reqVerToken, session } = mockSessionResponse();
+    // login
+    const { smsSession, tokens } = mockLoginResponse(session, reqVerToken, 10);
+    // sms
+    mockSmsResponse(message, smsSession, tokens, 10);
+
+    const massSmsPromises: Promise<void>[] = [];
+    for (let i = 0; i < 10; i++) {
+      massSmsPromises.push(hilinkSms.sms(message, RECIPIENT));
+    }
+
+    await Promise.all(massSmsPromises);
+
+    expect(nock.pendingMocks().length).toEqual(0);
+  });
+
   it('success - 2x automatic authenticate', async () => {
     // SMS 1
     const message = 'sample message';
@@ -111,9 +135,7 @@ describe('Huawei HiLink sms', () => {
     // login
     const { smsSession, tokens } = mockLoginResponse(session, reqVerToken);
     // sms
-    mockSmsResponse(message, smsSession, tokens);
-    mockSmsResponse(message, smsSession, tokens);
-    mockSmsResponse(message, smsSession, tokens);
+    mockSmsResponse(message, smsSession, tokens, 3);
 
     await hilinkSms.sms(message, RECIPIENT);
     await hilinkSms.sms(message, RECIPIENT);
@@ -126,9 +148,7 @@ describe('Huawei HiLink sms', () => {
     // login
     const { smsSession: smsSession2, tokens: tokens2 } = mockLoginResponse(session2, reqVerToken2);
     // sms
-    mockSmsResponse(message2, smsSession2, tokens2);
-    mockSmsResponse(message2, smsSession2, tokens2);
-    mockSmsResponse(message2, smsSession2, tokens2);
+    mockSmsResponse(message2, smsSession2, tokens2, 3);
 
     await hilinkSms.sms(message2, RECIPIENT);
     await hilinkSms.sms(message2, RECIPIENT);
@@ -179,7 +199,7 @@ describe('Huawei HiLink sms', () => {
     // session
     const { reqVerToken, session } = mockSessionResponse();
     // login
-    const { smsSession, tokens } = mockLoginResponse(session, reqVerToken);
+    mockLoginResponse(session, reqVerToken);
 
     nock
       .post('/api/sms/send-sms')
