@@ -7,7 +7,7 @@ Software version: 21.326.62.00.264
 Web UI version: 17.100.18.01.264
 */
 import got, { Response } from 'got';
-import { base64, getDate, jsonToXmlString, xmlStringToJson, sha256, logger } from './utils';
+import { base64, getDate, jsonToXmlString, xmlStringToJson, sha256, createLogger } from './utils';
 import { IApiResponse, IGetSessionResponse, IHilinkSms, IHilinkSmsConfig, Protocol } from './interfaces';
 
 const DEFAULT_PROTOCOL = 'http';
@@ -27,6 +27,7 @@ class HilinkSms implements IHilinkSms {
 
   private _clearSessionTimeout: NodeJS.Timeout | undefined;
   private _authPromise: Promise<any> | undefined;
+  private _logger: (...data: any) => void;
 
   constructor(config: IHilinkSmsConfig) {
     this._auth = {
@@ -36,6 +37,7 @@ class HilinkSms implements IHilinkSms {
     this._protocol = config.protocol || DEFAULT_PROTOCOL;
     this._host = config.host || DEFAULT_HOST;
 
+    this._logger = createLogger(config.silentLogs !== undefined ? config.silentLogs : true);
     this._networkErrorHandler = this._networkErrorHandler.bind(this);
     this._clearSessionData = this._clearSessionData.bind(this);
   }
@@ -43,7 +45,7 @@ class HilinkSms implements IHilinkSms {
   public async sms(message: string, recipient: string | string[]): Promise<void> {
     const startTime = Date.now();
     if (this._authTokens.length == 0 || !this._sessionId) {
-      logger('auto authentication');
+      this._logger('auto authentication');
       await this._authenticate();
       return this.sms(message, recipient);
     }
@@ -57,7 +59,7 @@ class HilinkSms implements IHilinkSms {
         Sca: '',
         Content: message,
         Length: message.length,
-        Reserved: 1,//g_text_mode - global variable from oryginal Huawei code
+        Reserved: 1,//g_text_mode - global variable from original Huawei code
         Date: getDate()
       }),
       headers: {
@@ -75,8 +77,14 @@ class HilinkSms implements IHilinkSms {
       this._clearSessionData();
       throw new Error('[SMS] Failed to send SMS.');
     }
-    logger('Send SMS OK,', `${Math.floor(Date.now() - startTime)}ms`);
+    this._logger('Send SMS OK,', `${Math.floor(Date.now() - startTime)}ms`);
   };
+
+  public destroy() {
+    if (this._clearSessionTimeout) {
+      clearTimeout(this._clearSessionTimeout);
+    }
+  }
 
   private async _authenticate(): Promise<void> {
     if (this._authPromise !== undefined) return this._authPromise;
@@ -112,7 +120,7 @@ class HilinkSms implements IHilinkSms {
       body: jsonToXmlString({
         Username: this._auth.login,
         Password: encPassword,
-        password_type: 4//g_password_type - global variable from oryginal Huawei code
+        password_type: 4//g_password_type - global variable from original Huawei code
       }),
       headers: {
         cookie: SesInfo[0],
@@ -137,7 +145,7 @@ class HilinkSms implements IHilinkSms {
 
     this._clearSessionTimeout = setTimeout(this._clearSessionData, DEFAULT_LOGOUT_TIME);
 
-    logger('LOGIN OK');
+    this._logger('LOGIN OK');
   };
 
   private _clearSessionData(): void {
@@ -146,7 +154,7 @@ class HilinkSms implements IHilinkSms {
   }
 
   private _networkErrorHandler(err: Error) {
-    logger('external error message:', err.message);
+    this._logger('external error message:', err.message);
     throw new Error('[SMS] Network error');
   }
 

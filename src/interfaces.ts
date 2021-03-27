@@ -4,6 +4,7 @@ interface IHilinkSmsConfig {
   sha256password: string;
   protocol?: Protocol;
   host?: string;
+  silentLogs?: boolean;
 }
 interface IGetSessionResponse {
   response: {
@@ -13,6 +14,7 @@ interface IGetSessionResponse {
 }
 interface IHilinkSms {
   sms: (message: string, recipient: string | string[]) => Promise<void>;
+  destroy: () => void;
 }
 interface IApiResponse {
   response?: 'OK';

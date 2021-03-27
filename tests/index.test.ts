@@ -93,6 +93,7 @@ describe('Huawei HiLink sms', () => {
 
   afterEach(() => {
     Nock.cleanAll();
+    hilinkSms.destroy();
   });
 
   it('success - automatic authenticate and send sms', async () => {
@@ -123,6 +124,7 @@ describe('Huawei HiLink sms', () => {
     }
 
     await Promise.all(massSmsPromises);
+    hilinkSms.destroy();
 
     expect(nock.pendingMocks().length).toEqual(0);
   });
