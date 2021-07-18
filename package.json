@@ -1,6 +1,6 @@
 {
   "name": "hilink-nodejs-sms",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Node.js library to send sms using Huawei modems (hilink).",
   "keywords": [
     "huawei",

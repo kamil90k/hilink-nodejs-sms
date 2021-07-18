@@ -9,10 +9,12 @@ Tested with latest software for Huawei E5573s-320, details:
 
 Library should work with other devices compatible with Huawei Hilink software.
 
+
 ## Installation
 ```sh
 $ npm install hilink-nodejs-sms --save
 ```
+
 
 ## Initialize object instance
 Set at least `login` and `hash of your password` in the configuration
@@ -22,17 +24,18 @@ import HilinkSms from 'hilink-nodejs-sms';
 const hilink = new HilinkSms({
   login: 'admin',
   sha256password: '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', // sha256('password')
-  silentLogs: false,                   // optional, turn on / turn off the logs (doesn't work if custom logger is defined)
-  logger: (info) => {                  // optional, custom logger
-    console.log(`----- ${info} -----`);
-  },
-  name: 'E5573s-320',                  // optional, device name used to distinguish many devices
-  parallelSmsCount: 2,                 // optional, number of messages sent in parallel to the device
-  networkInterface: 'enx0c5b8f279a64', // optional, specify the network interface in case of multiple internet connections (linux only with curl installed)
-  host: '192.168.8.1',                 // optional
-  protocol: 'http'                     // optional
+  // silentLogs: false,                   // optional, turn on / turn off the logs (doesn't work if custom logger is defined)
+  // logger: (info) => {                  // optional, custom logger
+  //  console.log(`----- ${info} -----`);
+  // },
+  // name: 'E5573s-320',                  // optional, device name used to distinguish many devices
+  // parallelSmsCount: 2,                 // optional, number of messages sent in parallel to the device
+  // networkInterface: 'enx0c5b8f279a64', // optional, specify the network interface in case of multiple internet connections (linux only with curl installed)
+  // host: '192.168.8.1',                 // optional
+  // protocol: 'http'                     // optional
 });
 ```
+
 
 ## Send SMS
 ```js
@@ -59,6 +62,7 @@ parameter | Description | type
 --- | --- | ---
 `message` | SMS text | String
 `recipient` | phone number / numbers | String / Array of Strings
+
 
 ## Destroy instance
 It is important to release resources and avoid memory leaks!
