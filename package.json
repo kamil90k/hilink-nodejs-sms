@@ -1,7 +1,7 @@
 {
   "name": "hilink-nodejs-sms",
-  "version": "1.0.2",
-  "description": "Node.js library to send sms from Huawei routers/modems (hilink).",
+  "version": "2.0.0",
+  "description": "Node.js library to send sms using Huawei modems (hilink).",
   "keywords": [
     "huawei",
     "hilink",
@@ -11,8 +11,8 @@
   "author": "kamil90k",
   "homepage": "https://github.com/kamil90k/hilink-nodejs-sms.git#readme",
   "license": "WTFPL",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/HilinkSms.js",
+  "types": "dist/HilinkSms.d.ts",
   "files": [
     "/dist"
   ],
@@ -37,7 +37,7 @@
     ]
   },
   "dependencies": {
-    "got": "10.2.2",
+    "axios": "0.21.1",
     "xml2js": "0.4.23"
   },
   "devDependencies": {
@@ -49,6 +49,6 @@
     "ts-jest": "24.3.0",
     "ts-node": "8.6.2",
     "ts-node-dev": "1.0.0-pre.44",
-    "typescript": "3.7.4"
+    "typescript": "4.1.6"
   }
 }

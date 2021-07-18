@@ -1,14 +1,15 @@
-import HilinkSms from '../src';
+import HilinkSms from '../src/HilinkSms';
 import Nock from 'nock';
 import { base64, getDate, jsonToXmlString, sha256 } from '../src/utils';
 import * as utils from '../src/utils'; // mock purpose
 import { uuid } from './testUtils';
+import { Protocol } from '../src/interfaces';
 
 // mock generating date
 (utils.getDate as any) = jest.fn(() => 'yyyy-MM-dd hh:mm:ss');
 
-const DEFAULT_PROTOCOL = 'http',
-  DEFAULT_HOST = '192.168.0.1',
+const DEFAULT_PROTOCOL = Protocol.Http,
+  DEFAULT_HOST = '192.168.8.1',
   BASE_PATH = `${DEFAULT_PROTOCOL}://${DEFAULT_HOST}`,
   LOGIN = 'admin',
   PASSWORD = 'password',
@@ -28,8 +29,7 @@ const getSmsReqBody = (message: string) => jsonToXmlString({
   },
   Sca: '',
   Content: message,
-  Length: message.length,
-  Reserved: 1,
+  Length: message.length,  Reserved: 1,
   Date: getDate()
 });
 
@@ -42,12 +42,12 @@ const mockSessionResponse = () => {
     .get('/api/webserver/SesTokInfo')
     .reply(200, jsonToXmlString({
       response: {
-        SesInfo: [session],
-        TokInfo: [reqVerToken]
+        SesInfo: [ session ],
+        TokInfo: [ reqVerToken ]
       }
     }));
 
-  return { reqVerToken, session }
+  return {reqVerToken, session}
 };
 const mockLoginResponse = (session: string, reqVerToken: string, tokenAmount: number = 3) => {
   const smsSession = uuid();
@@ -62,9 +62,11 @@ const mockLoginResponse = (session: string, reqVerToken: string, tokenAmount: nu
     .matchHeader('__RequestVerificationToken', reqVerToken)
     .reply(
       200,
-      jsonToXmlString({ response: 'OK' }),
-      { '__requestverificationtoken': tokens.join('#'),
-        'set-cookie': smsSession }
+      jsonToXmlString({response: 'OK'}),
+      {
+        '__requestverificationtoken': tokens.join('#'),
+        'set-cookie': smsSession
+      }
     );
   tokens.pop(); // important! remove empty token
 
@@ -76,7 +78,7 @@ const mockSmsResponse = (message: string, smsSessionId: string, tokens: string[]
     .times(times)
     .matchHeader('cookie', smsSessionId)
     .matchHeader('__RequestVerificationToken', new RegExp(tokens.join('|')))
-    .reply(200, jsonToXmlString({ response: 'OK' }));
+    .reply(200, jsonToXmlString({response: 'OK'}));
 };
 
 describe('Huawei HiLink sms', () => {
@@ -96,12 +98,12 @@ describe('Huawei HiLink sms', () => {
     hilinkSms.destroy();
   });
 
-  it('success - automatic authenticate and send sms', async () => {
+  test('success - automatic authenticate and send sms', async () => {
     const message = 'sample message';
     // session
-    const { reqVerToken, session } = mockSessionResponse();
+    const {reqVerToken, session} = mockSessionResponse();
     // login
-    const { smsSession, tokens } = mockLoginResponse(session, reqVerToken);
+    const {smsSession, tokens} = mockLoginResponse(session, reqVerToken);
     // sms
     mockSmsResponse(message, smsSession, tokens);
 
@@ -109,12 +111,12 @@ describe('Huawei HiLink sms', () => {
     expect(nock.pendingMocks().length).toEqual(0);
   });
 
-  it('success - automatic authenticate and mass sending sms', async () => {
+  test('success - automatic authenticate and mass sending sms', async () => {
     const message = 'sample message';
     // session
-    const { reqVerToken, session } = mockSessionResponse();
+    const {reqVerToken, session} = mockSessionResponse();
     // login
-    const { smsSession, tokens } = mockLoginResponse(session, reqVerToken, 10);
+    const {smsSession, tokens} = mockLoginResponse(session, reqVerToken, 10);
     // sms
     mockSmsResponse(message, smsSession, tokens, 10);
 
@@ -129,13 +131,13 @@ describe('Huawei HiLink sms', () => {
     expect(nock.pendingMocks().length).toEqual(0);
   });
 
-  it('success - 2x automatic authenticate', async () => {
+  test('success - 2x automatic authenticate', async () => {
     // SMS 1
     const message = 'sample message';
     // session
-    const { reqVerToken, session } = mockSessionResponse();
+    const {reqVerToken, session} = mockSessionResponse();
     // login
-    const { smsSession, tokens } = mockLoginResponse(session, reqVerToken);
+    const {smsSession, tokens} = mockLoginResponse(session, reqVerToken);
     // sms
     mockSmsResponse(message, smsSession, tokens, 3);
 
@@ -146,9 +148,9 @@ describe('Huawei HiLink sms', () => {
     // SMS 2
     const message2 = 'sample message 2';
     // session
-    const { reqVerToken: reqVerToken2, session: session2 } = mockSessionResponse();
+    const {reqVerToken: reqVerToken2, session: session2} = mockSessionResponse();
     // login
-    const { smsSession: smsSession2, tokens: tokens2 } = mockLoginResponse(session2, reqVerToken2);
+    const {smsSession: smsSession2, tokens: tokens2} = mockLoginResponse(session2, reqVerToken2);
     // sms
     mockSmsResponse(message2, smsSession2, tokens2, 3);
 
@@ -159,7 +161,7 @@ describe('Huawei HiLink sms', () => {
     expect(nock.pendingMocks().length).toEqual(0);
   });
 
-  it('failed - reach session endpoint', async () => {
+  test('failed - reach session endpoint', async () => {
     let error: any;
     nock
       .get('/api/webserver/SesTokInfo')
@@ -170,13 +172,13 @@ describe('Huawei HiLink sms', () => {
     } catch (err) {
       error = err
     } finally {
-      expect(error.message).toMatch(/.*Network error.*/);
+      expect(error).toMatch(/.*Network error.*/);
     }
 
     expect(nock.pendingMocks().length).toEqual(0);
   });
 
-  it('failed - reach login endpoint', async () => {
+  test('failed - reach login endpoint', async () => {
     let error: any;
     // session
     await mockSessionResponse();
@@ -190,16 +192,16 @@ describe('Huawei HiLink sms', () => {
     } catch (err) {
       error = err
     } finally {
-      expect(error?.message).toMatch(/.*Network error.*/);
+      expect(error).toMatch(/.*Network error.*/);
     }
 
     expect(nock.pendingMocks().length).toEqual(0);
   });
 
-  it('failed - reach sms endpoint', async () => {
+  test('failed - reach sms endpoint', async () => {
     let error: any;
     // session
-    const { reqVerToken, session } = mockSessionResponse();
+    const {reqVerToken, session} = mockSessionResponse();
     // login
     mockLoginResponse(session, reqVerToken);
 
@@ -212,7 +214,7 @@ describe('Huawei HiLink sms', () => {
     } catch (err) {
       error = err
     } finally {
-      expect(error?.message).toMatch(/.*Network error.*/);
+      expect(error).toMatch(/.*Network error.*/);
     }
 
     expect(nock.pendingMocks().length).toEqual(0);
