@@ -1,9 +1,7 @@
-import { Protocol } from '../interfaces';
-
 const DEFAULT_HOST = '192.168.8.1';
 const DEFAULT_LOGOUT_TIME = 20 * 1000;
 const DEFAULT_PARALLEL_SMS_COUNT = 2;
-const DEFAULT_PROTOCOL = Protocol.Http;
+const DEFAULT_PROTOCOL = 'http';
 const DEFAULT_QUEUE_SLEEP_TIME = 100;
 
 export {

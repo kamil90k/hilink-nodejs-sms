@@ -30,7 +30,7 @@ const hilink = new HilinkSms({
   parallelSmsCount: 2,                 // optional, number of messages sent in parallel to the device
   networkInterface: 'enx0c5b8f279a64', // optional, specify the network interface in case of multiple internet connections (linux only with curl installed)
   host: '192.168.8.1',                 // optional
-  protocol: Protocol.Http              // optional
+  protocol: 'http'                     // optional
 });
 ```
 

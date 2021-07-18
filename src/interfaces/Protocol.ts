@@ -1,6 +1,3 @@
-enum Protocol {
-  Http = 'http',
-  Https = 'https'
-};
+type Protocol = 'http' | 'https';
 
 export default Protocol;
